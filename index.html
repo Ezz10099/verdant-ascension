@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="theme-color" content="#17251b">
+  <title>Verdant Ascension</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="hud">
+    <div>
+      <h1>Verdant Ascension</h1>
+      <p id="status">Tap a hex next to the grass to spread.</p>
+    </div>
+    <div class="hud-actions">
+      <span id="tileCount">Grass: 1</span>
+      <button id="resetButton" type="button">Reset</button>
+    </div>
+  </header>
+
+  <main id="gameWrap">
+    <canvas id="gameCanvas" aria-label="Verdant Ascension prototype map"></canvas>
+  </main>
+
+  <script src="game.js"></script>
+</body>
+</html>
