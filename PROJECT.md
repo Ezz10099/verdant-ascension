@@ -9,20 +9,20 @@ This file is the permanent source of truth for the project's design, decisions, 
 **Working title:** Verdant Ascension  
 **Repository:** `Ezz10099/verdant-ascension`
 
-Verdant Ascension is a strategy game centered on plants that fight, consume value from weaker plant life, grow stronger, and eventually evolve into increasingly larger forms.
+Verdant Ascension is a strategy game centered on plant life that fights, consumes value from weaker growth, becomes stronger, and eventually evolves into increasingly larger forms.
 
-The game begins at an extremely small scale with a tiny green grass plant. Progression eventually reaches gigantic real-world plants and trees, then continues beyond reality into fictional and science-fiction plant forms.
+The game begins at an extremely small scale with tiny green grass. Progression eventually reaches gigantic real-world plants and trees, then continues beyond reality into fictional and science-fiction plant forms.
 
 ---
 
 ## 2. Development Environment
 
 - Development is intended to be completed entirely from a phone.
-- SPCK Editor is used on the phone to edit/test the game.
+- SPCK Editor is used on the phone to edit and test the game.
 - SPCK is connected to GitHub.
 - GitHub is the permanent repository and source of truth.
-- ChatGPT is connected to GitHub and may directly help maintain the codebase and this project document.
-- The game will be built as a web game so it can be developed and tested easily in this workflow.
+- ChatGPT is connected to GitHub and may directly maintain the codebase and this project document.
+- The game is built as a web game so it can be developed and tested easily in this workflow.
 - Prefer a lightweight codebase and avoid unnecessary tooling or build steps unless the project later requires them.
 
 ---
@@ -30,15 +30,15 @@ The game begins at an extremely small scale with a tiny green grass plant. Progr
 ## 3. Core Game Concept — Confirmed
 
 - The game is about **combat between plant life**.
-- It is not a farming economy simulator.
+- It is **not** a farming economy simulator.
 - It should remain simple to understand rather than becoming overloaded with systems.
 - The player begins with the weakest form: **small green grass**.
-- Plants have strength and can have values such as health.
+- Plants can have strength, health, growth, or similar combat values.
 - Stronger plant growth can overwhelm weaker growth.
-- When stronger plant life defeats weaker plant life, it can consume/take its value.
-- Accumulated value contributes toward becoming stronger and eventually upgrading/evolving.
+- When stronger plant life defeats weaker plant life, it can consume or take its value.
+- Accumulated value contributes toward becoming stronger and eventually upgrading / evolving.
 - Progression moves through many increasingly large plant forms.
-- The progression is inspired by **real-world plant size and visual scale**, not literal biological evolution.
+- Progression is inspired by **real-world plant size and visual scale**, not literal biological evolution.
 - The realistic portion of progression should use researched real plants ordered approximately by size, mass, and visual presence.
 - After the realistic range is exhausted, progression may continue into original fictional and science-fiction plants.
 - The game is allowed to be unrealistic where that makes it more fun. Internal game logic matters more than botanical realism.
@@ -50,16 +50,17 @@ The game begins at an extremely small scale with a tiny green grass plant. Progr
 1. **Simple core, long progression.** Easy to understand, but capable of supporting a very long journey through plant forms.
 2. **Plants are the combatants.** Avoid turning the design into soldiers, farmers, markets, workers, or conventional armies unless a future decision explicitly changes this.
 3. **Growth should feel visible.** Each major upgrade should look noticeably larger or more impressive than what came before it.
-4. **Real before fictional.** Use real plant inspiration for a substantial early/middle progression, then transition naturally into fantasy and science-fiction scale.
+4. **Real before fictional.** Use real plant inspiration for a substantial early / middle progression, then transition naturally into fantasy and science-fiction scale.
 5. **Research before locking progression.** Real-world plants and their dimensions should be checked before permanently placing them in the progression tree.
 6. **Phone-first development.** Controls, UI, performance, and project structure should remain practical for development and play on a phone.
 7. **Do not add complexity merely for realism.** Mechanics should earn their place by improving the game.
+8. **The battlefield should look alive.** Movement, growth, impact, and evolution should be visually readable rather than represented only by static board pieces.
 
 ---
 
 ## 5. Progression Structure
 
-### Confirmed endpoints/concepts
+### Confirmed endpoints / concepts
 
 - Starting tier: **small green grass**.
 - Real-world progression should contain many stages, not merely a short chain such as grass → shrub → tree.
@@ -88,104 +89,190 @@ These are scale references from early discussion. Exact order, inclusion, names,
 
 Height alone will not determine power. Width, mass, density, visual scale, and gameplay feel may also influence progression placement.
 
+### Prototype-only plant tiers
+
+The current prototype temporarily uses these names to test upgrades and visuals:
+
+1. Small Grass
+2. Tall Grass
+3. Wheat Patch
+4. Reed Bundle
+5. Sugar Cane
+6. Giant Bamboo
+
+These are **not** the finalized progression tree.
+
 ---
 
 ## 6. Combat / Growth — Current Direction
 
-Directionally agreed, but exact numbers/formulas are not locked:
+The exact final combat formula is still provisional, but the current direction is:
 
-- A plant/unit may have health or similar durability.
-- Stronger plant growth can damage or collapse weaker plant growth.
-- Defeated plant growth contributes value to the winner.
-- Gaining enough value allows a plant to become stronger and eventually upgrade.
-- Core loop direction:
+- Friendly plant growth generates growth value over time.
+- A player can select one of their plant growth areas.
+- Growth can be sent toward a connected neighboring area.
+- Sent growth damages hostile or wild growth.
+- If the target is reduced below zero, ownership changes to the attacker.
+- Growth can also be invested into upgrading the selected plant to a stronger stage.
+- Defeating and absorbing weaker growth remains central to long-term progression.
 
-**spread → fight → consume value → strengthen → evolve → face larger growth**
+Core loop direction:
 
-Exact attack rules, spreading rules, upgrade costs, and whether combat is turn-based or continuous are still undecided.
+**grow → attack → consume / capture → strengthen → evolve → face larger growth**
+
+The current numeric values, regeneration rates, attack ratios, upgrade costs, and enemy AI behavior are prototype tuning and are not permanent rules yet.
 
 ---
 
-## 7. Rejected Directions
+## 7. Presentation Direction — Confirmed
+
+### Hexagon presentation rejected
+
+The original hexagonal-board presentation is no longer the intended visual direction.
+
+Verdant Ascension should not visually feel like a conventional hex-board strategy game.
+
+### Current presentation
+
+The prototype now uses an **organic battlefield** made from irregular plant-growth plots connected by root-like paths.
+
+Current presentation goals:
+
+- irregular organic plots instead of hexagons
+- root / growth connections between nearby areas
+- plants visibly drawn on the battlefield
+- animated plant swaying
+- pulsing growth energy
+- moving attack particles / seeds / spores
+- impact flashes and capture bloom effects
+- ambient floating spores
+- a dark natural environment rather than a flat board
+- touch-friendly mobile controls and HUD
+
+The root-connected plot system is the current prototype presentation. It may still evolve further if a better free-form or more natural representation is found.
+
+---
+
+## 8. Rejected Directions
 
 - Farming economy centered on planting crops and selling them for money.
 - Complex markets, transport, wages, taxes, loans, fertility management, or similar simulation-heavy economics.
-- Copying Antiyoy's territory/combat system directly.
+- Copying Antiyoy's territory / combat system directly.
+- Hexagonal tiles as the main presentation.
 - A short simplistic progression where grass immediately becomes shrubs, then trees, then a giant forest.
 
-Antiyoy helped inspire the desire for a simple strategy game with substantial depth, but Verdant Ascension should develop its own combat and progression logic.
+Antiyoy helped inspire the desire for a simple strategy game with substantial depth, but Verdant Ascension should develop its own combat, presentation, and progression logic.
 
 ---
 
-## 8. Technical Direction
+## 9. Technical Direction
 
 ### Confirmed
 
 - Web technology is preferred for the phone + SPCK + GitHub workflow.
 - Interface must be touch-friendly and responsive.
 - Avoid unnecessary dependencies in the early prototype.
+- Strong visual motion should be achieved with lightweight rendering so the game remains practical on a phone.
 
-### Initial technical choice
+### Current implementation
 
-The first prototype uses plain HTML, CSS, JavaScript, and an HTML Canvas. This minimizes setup and lets SPCK run it immediately.
+The prototype uses:
+
+- plain HTML
+- CSS
+- JavaScript
+- HTML Canvas
+- `requestAnimationFrame` for continuous animation
+
+Current files:
+
+- `PROJECT.md` — permanent project memory and design record
+- `index.html` — page structure and mobile HUD
+- `style.css` — responsive visual styling
+- `game.js` — game state, AI, combat, input, rendering, and animation
 
 This is a technical starting point, not a permanent restriction.
 
 ---
 
-## 9. Current Development Milestone
+## 10. Current Development Milestone
 
-### Milestone 0 — Mobile Hex Foundation
+### Milestone 1 — Organic Battlefield Prototype
 
-Goal: prove that the basic map, rendering, and touch interaction work comfortably on the phone before implementing permanent combat rules.
+The original hex foundation has been replaced.
 
-Prototype requirements:
+Current prototype now includes:
 
-- responsive hexagonal map
-- starting small-grass tile
-- touch/tap input
-- spread starter grass into adjacent empty hexes as a **technical interaction test**
-- reset button
-- tile counter
+- full-screen animated Canvas battlefield
+- irregular organic plant plots
+- root-like connections between plots
+- player-controlled green growth
+- enemy orange / blight growth
+- neutral wild growth
+- touch selection
+- attacks sent across connected growth paths
+- animated attack particles
+- growth regeneration
+- plot capture
+- six temporary upgrade tiers
+- upgrade button
+- simple enemy AI
+- animated plant sway
+- pulsing / bloom effects
+- ambient spores
+- victory and defeat states
+- responsive phone-first HUD
+- reset control
 
-**Important:** tapping adjacent tiles to spread grass is not yet a confirmed final gameplay rule.
+### Purpose of this milestone
 
-### Next design milestone
+Prove that plant combat can feel visually alive and distinct without relying on hexagonal tiles before we invest in the much larger real-world evolution tree and final combat rules.
 
-Define the smallest complete combat loop for **small green grass vs. other weak plant growth**, then implement it without adding unrelated systems.
+### Next development milestone
+
+Build the first **proper plant progression slice** using researched plant species and visibly distinct forms, then make their differences matter in combat without overcomplicating the rules.
 
 ---
 
-## 10. Decision Log
+## 11. Decision Log
 
 ### 2026-09-05
 
 - Chosen working project name: **Verdant Ascension**.
 - GitHub will store permanent project memory and code.
-- Use one master project/design file with sections instead of many separate planning files.
+- Use one master project / design file with sections instead of many separate planning files.
 - Confirmed that the game centers on fighting and evolving plant life.
 - Confirmed small green grass as the starting form.
 - Confirmed that real-world plant research will inform a long size-based progression.
-- Confirmed that fictional/science-fiction plants may extend progression beyond real-world limits.
-- Rejected the farming-market/economy direction.
+- Confirmed that fictional / science-fiction plants may extend progression beyond real-world limits.
+- Rejected the farming-market / economy direction.
 - Began actual development with a lightweight mobile web prototype.
+
+### 2026-09-06
+
+- Rejected hexagonal tiles as the main visual presentation.
+- Made stronger graphics and animation a development priority.
+- Replaced the hex-map prototype with an organic root-connected battlefield.
+- Added continuous plant sway, ambient spores, attack particles, impact / bloom effects, growth regeneration, capture, upgrades, enemy AI, and win / loss states.
+- Kept the new mechanics explicitly provisional where they have not yet been confirmed as final game rules.
 
 ---
 
-## 11. Open Design Questions
+## 12. Open Design Questions
 
 These are not decisions yet:
 
-- Is the game turn-based, real-time, or something in between?
-- Exactly how does one plant attack or consume another?
-- Does one hex contain one individual plant, a patch/field, or either depending on scale?
-- How is evolution triggered and where does the evolved form appear?
+- Should the final game remain root-connected / node-based, or evolve into a more free-form battlefield?
+- Exactly how should stronger plants consume weaker plants in the finalized combat system?
+- When an area is captured, should its plant species remain, transform, or be replaced by the attacker?
+- How should evolution be triggered in the final game?
 - Will progression branch into multiple plants at each tier or mostly follow one main path?
-- How large should the map become as plant scale increases?
-- How should enormous late-game plants interact with the same map used by tiny grass?
+- How should the battlefield scale as plants progress from centimeters to trees over 100 meters tall?
+- How should enormous fictional late-game plants change the battlefield itself?
+- What is the final victory / loss structure for the long-term game?
 
 ---
 
-## 12. Maintenance Rule
+## 13. Maintenance Rule
 
-Whenever a meaningful game-design or technical decision is confirmed, update this file. If an idea is only being explored, keep it marked provisional or under open questions rather than presenting it as final.
+Whenever a meaningful game-design or technical decision is confirmed, update this file in GitHub. If an idea is only being explored, keep it marked provisional or under open questions rather than presenting it as final.
