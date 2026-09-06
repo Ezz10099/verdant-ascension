@@ -5,29 +5,30 @@
   const ctx = canvas.getContext("2d");
   const statusEl = document.getElementById("status");
   const selectedEl = document.getElementById("selectedInfo");
+  const growthEl = document.getElementById("growthInfo");
   const territoryEl = document.getElementById("territoryInfo");
   const upgradeButton = document.getElementById("upgradeButton");
   const resetButton = document.getElementById("resetButton");
 
   const TIER = {
-    1: { name: "Small Grass", cap: 42, regen: 6, cost: 34 },
-    2: { name: "Tall Grass", cap: 62, regen: 8, cost: 48 },
-    3: { name: "Wheat Patch", cap: 86, regen: 10, cost: 64 },
-    4: { name: "Reed Bundle", cap: 114, regen: 12, cost: 82 },
-    5: { name: "Sugar Cane", cap: 146, regen: 14, cost: 102 },
-    6: { name: "Giant Bamboo", cap: 184, regen: 16, cost: 0 }
+    1: { name: "Small Grass", cap: 42, regen: 6, cost: 34, blades: 10 },
+    2: { name: "Tall Grass", cap: 62, regen: 8, cost: 48, blades: 15 },
+    3: { name: "Wheat Patch", cap: 86, regen: 10, cost: 64, blades: 18 },
+    4: { name: "Reed Bundle", cap: 114, regen: 12, cost: 82, blades: 19 },
+    5: { name: "Sugar Cane", cap: 146, regen: 14, cost: 102, blades: 15 },
+    6: { name: "Giant Bamboo", cap: 184, regen: 16, cost: 0, blades: 11 }
   };
 
-  const STYLE = {
-    player: { core: "#79f08d", glow: "rgba(126,245,139,0.36)", deep: "#214d2d", leaf: "#bdff9e", shot: "#a6ffb4" },
-    enemy: { core: "#ffb068", glow: "rgba(255,176,104,0.34)", deep: "#67391d", leaf: "#ffdb82", shot: "#ffcb95" },
-    neutral: { core: "#8eb287", glow: "rgba(170,220,160,0.14)", deep: "#374736", leaf: "#cae0b4", shot: "#dcedd4" }
+  const PALETTE = {
+    player: { soil: "#203b28", dark: "#0f2517", leaf: "#65d978", leaf2: "#a7ee83", glow: "rgba(103,226,124,.28)", vein: "#b8ffad" },
+    enemy: { soil: "#493321", dark: "#2a1c13", leaf: "#d88752", leaf2: "#eab96c", glow: "rgba(236,139,79,.24)", vein: "#ffd19a" },
+    neutral: { soil: "#323b2d", dark: "#1d251b", leaf: "#81997b", leaf2: "#aab99a", glow: "rgba(165,197,157,.10)", vein: "#c8d8bf" }
   };
 
   const layout = [
-    [0.10, 0.36], [0.19, 0.22], [0.20, 0.50], [0.31, 0.35], [0.33, 0.66],
-    [0.46, 0.21], [0.48, 0.49], [0.60, 0.34], [0.58, 0.67], [0.73, 0.22],
-    [0.75, 0.49], [0.87, 0.35], [0.84, 0.63]
+    [0.12, 0.31], [0.23, 0.18], [0.23, 0.48], [0.36, 0.31], [0.36, 0.64],
+    [0.50, 0.18], [0.50, 0.47], [0.63, 0.31], [0.62, 0.64], [0.76, 0.19],
+    [0.77, 0.47], [0.89, 0.31], [0.86, 0.65]
   ];
 
   let w = 0;
@@ -35,34 +36,28 @@
   let dpr = 1;
   let nodes = [];
   let edges = [];
+  let selectedId = 0;
   let spores = [];
-  let shots = [];
+  let tendrils = [];
   let bursts = [];
-  let selectedId = null;
   let enemyClock = 0;
   let last = 0;
-  let status = "Tap your green growth to begin.";
+  let message = "Tap a green patch, then tap a nearby patch to attack.";
+  let messageAge = 0;
   let result = "";
 
   function init() {
     nodes = layout.map((p, id) => ({
       id,
-      nx: p[0],
-      ny: p[1],
-      x: 0,
-      y: 0,
-      r: 36,
-      owner: "neutral",
-      tier: 1,
-      growth: 22,
-      hit: 0,
-      bloom: 0,
-      phase: Math.random() * Math.PI * 2
+      nx: p[0], ny: p[1], x: 0, y: 0, r: 34,
+      owner: "neutral", tier: 1, growth: 22,
+      hit: 0, bloom: 0, phase: Math.random() * Math.PI * 2,
+      shape: makeShape(id), seed: id * 991 + 17
     }));
 
     [
       [0, "player", 1, 32], [1, "player", 2, 42], [2, "player", 1, 28],
-      [11, "enemy", 1, 30], [12, "enemy", 2, 44], [10, "enemy", 1, 30],
+      [10, "enemy", 1, 30], [11, "enemy", 1, 30], [12, "enemy", 2, 44],
       [3, "neutral", 2, 36], [4, "neutral", 2, 34], [5, "neutral", 3, 50],
       [6, "neutral", 2, 38], [7, "neutral", 3, 52], [8, "neutral", 2, 34], [9, "neutral", 3, 50]
     ].forEach(([id, owner, tier, growth]) => Object.assign(nodes[id], { owner, tier, growth }));
@@ -70,162 +65,140 @@
     edges = [];
     for (let i = 0; i < nodes.length; i += 1) {
       for (let j = i + 1; j < nodes.length; j += 1) {
-        if (Math.hypot(nodes[i].nx - nodes[j].nx, nodes[i].ny - nodes[j].ny) < 0.195) {
-          edges.push([i, j]);
-        }
+        if (Math.hypot(nodes[i].nx - nodes[j].nx, nodes[i].ny - nodes[j].ny) < 0.195) edges.push([i, j]);
       }
     }
 
-    spores = Array.from({ length: 40 }, () => ({
-      x: Math.random(),
-      y: Math.random(),
-      s: Math.random() * 3 + 1,
-      v: Math.random() * 0.03 + 0.01,
-      a: Math.random() * 0.35 + 0.12
+    spores = Array.from({ length: 32 }, (_, i) => ({
+      x: pseudo(i * 3 + 1), y: pseudo(i * 5 + 2),
+      size: 0.8 + pseudo(i * 7 + 4) * 2.2,
+      speed: 0.008 + pseudo(i * 11 + 3) * 0.022,
+      alpha: 0.10 + pseudo(i * 13 + 8) * 0.25
     }));
 
-    shots = [];
+    tendrils = [];
     bursts = [];
     selectedId = 0;
     enemyClock = 0;
     result = "";
-    setStatus("Organic battlefield ready.");
+    setMessage("Tap a green patch, then tap a nearby patch to attack.");
     resize();
     syncHud();
   }
 
+  function makeShape(seed) {
+    return Array.from({ length: 14 }, (_, i) => {
+      const a = (Math.PI * 2 * i) / 14;
+      const n = 0.78 + pseudo(seed * 31 + i * 17) * 0.27;
+      return { a, n };
+    });
+  }
+
+  function pseudo(n) {
+    const x = Math.sin(n * 12.9898 + 78.233) * 43758.5453;
+    return x - Math.floor(x);
+  }
+
   function resize() {
-    dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
+    dpr = Math.max(1, Math.min(devicePixelRatio || 1, 2));
     w = canvas.clientWidth || innerWidth;
     h = canvas.clientHeight || innerHeight;
     canvas.width = Math.round(w * dpr);
     canvas.height = Math.round(h * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
     const base = Math.min(w, h);
     nodes.forEach((n) => {
-      n.x = w * 0.06 + n.nx * w * 0.88;
+      n.x = w * 0.04 + n.nx * w * 0.92;
       n.y = h * 0.10 + n.ny * h * 0.78;
-      n.r = base * (0.05 + n.tier * 0.004);
+      n.r = Math.max(31, base * (0.053 + n.tier * 0.003));
     });
   }
 
-  function setStatus(text) {
-    status = text;
-  }
+  function tier(n) { return TIER[n.tier]; }
+  function neighbors(id) { return edges.flatMap(([a, b]) => a === id ? [nodes[b]] : b === id ? [nodes[a]] : []); }
+  function linked(a, b) { return edges.some(([x, y]) => (x === a && y === b) || (x === b && y === a)); }
 
-  function tier(n) {
-    return TIER[n.tier];
-  }
-
-  function neighbors(id) {
-    return edges.flatMap(([a, b]) => a === id ? [nodes[b]] : b === id ? [nodes[a]] : []);
-  }
-
-  function linked(a, b) {
-    return edges.some(([x, y]) => (x === a && y === b) || (x === b && y === a));
+  function setMessage(text) {
+    message = text;
+    messageAge = 0;
+    statusEl.textContent = text;
+    statusEl.style.opacity = "1";
+    statusEl.style.transform = "translateX(-50%) translateY(0)";
   }
 
   function upgrade() {
     if (selectedId == null || result) return;
     const n = nodes[selectedId];
     if (!n || n.owner !== "player") return;
-
     const info = tier(n);
-    if (n.tier >= 6) return setStatus("This growth is already at its current peak.");
-    if (n.growth < info.cost) return setStatus(`Need ${info.cost} growth to evolve.`);
-
+    if (n.tier >= 6) return setMessage("This plant has reached the current prototype peak.");
+    if (n.growth < info.cost) return setMessage(`Need ${info.cost} growth to evolve.`);
     n.growth -= info.cost;
     n.tier += 1;
-    n.bloom = 1.2;
-    bursts.push({ x: n.x, y: n.y, age: 0, life: 0.8, color: STYLE.player.shot, big: true });
-    setStatus(`${tier(n).name} awakened.`);
+    n.bloom = 1.3;
+    bursts.push({ x: n.x, y: n.y, age: 0, life: .9, owner: n.owner, big: true });
+    setMessage(`${tier(n).name} evolved.`);
     resize();
   }
 
-  function send(source, target, ratio = 0.56) {
+  function attack(source, target, ratio = .58) {
     if (!source || !target || result) return false;
-
     if (source.growth < 18) {
-      if (source.owner === "player") setStatus("That plot needs more growth before attacking.");
+      if (source.owner === "player") setMessage("Let this patch regrow before attacking again.");
       return false;
     }
 
     const amount = Math.max(18, Math.floor(source.growth * ratio));
     source.growth -= amount;
-    const parts = Math.max(5, Math.min(10, Math.round(amount / 8)));
-
-    for (let i = 0; i < parts; i += 1) {
-      shots.push({
-        owner: source.owner,
-        from: source.id,
-        to: target.id,
-        power: amount / parts,
-        delay: i * 0.045,
-        t: 0,
-        dur: 0.36 + Math.random() * 0.18,
-        arc: (Math.random() - 0.5) * 36
-      });
-    }
-
-    source.bloom = 0.25;
+    tendrils.push({
+      owner: source.owner,
+      from: source.id,
+      to: target.id,
+      power: amount,
+      t: 0,
+      duration: .55,
+      sway: (pseudo(source.id * 41 + target.id * 17) - .5) * 70,
+      struck: false
+    });
+    source.bloom = .28;
     return true;
   }
 
-  function impact(shot) {
-    const target = nodes[shot.to];
+  function resolveHit(t) {
+    const target = nodes[t.to];
     if (!target) return;
-
-    bursts.push({ x: target.x, y: target.y, age: 0, life: 0.36, color: STYLE[shot.owner].shot, big: false });
-
-    if (target.owner === shot.owner) {
-      target.growth = Math.min(tier(target).cap, target.growth + shot.power * 0.78);
+    bursts.push({ x: target.x, y: target.y, age: 0, life: .42, owner: t.owner, big: false });
+    if (target.owner === t.owner) {
+      target.growth = Math.min(tier(target).cap, target.growth + t.power * .72);
       return;
     }
-
-    target.growth -= shot.power;
-    target.hit = 0.8;
-
+    target.growth -= t.power;
+    target.hit = 1;
     if (target.growth <= 0) {
       const overflow = Math.abs(target.growth);
-      target.owner = shot.owner;
-      target.growth = Math.min(tier(target).cap, 12 + overflow);
+      target.owner = t.owner;
+      target.growth = Math.min(tier(target).cap, 12 + overflow * .35);
       target.hit = 0;
       target.bloom = 1.4;
-      bursts.push({ x: target.x, y: target.y, age: 0, life: 0.85, color: STYLE[shot.owner].shot, big: true });
-      if (shot.owner === "player") setStatus(`${tier(target).name} plot captured.`);
+      bursts.push({ x: target.x, y: target.y, age: 0, life: .95, owner: t.owner, big: true });
+      if (t.owner === "player") setMessage(`${tier(target).name} captured.`);
     }
   }
 
   function enemyTurn() {
     if (result) return;
-
     let best = null;
-
     nodes.forEach((n) => {
       if (n.owner !== "enemy" || n.growth < 20) return;
-
       neighbors(n.id).forEach((m) => {
         if (m.owner === "enemy") return;
-        const score =
-          (m.owner === "player" ? 24 : 10) +
-          n.growth * 0.35 -
-          m.growth * 0.25 +
-          (n.tier - m.tier) * 5 +
-          Math.random() * 4;
-
-        if (!best || score > best.score) {
-          best = { source: n, target: m, score };
-        }
+        const score = (m.owner === "player" ? 25 : 10) + n.growth * .32 - m.growth * .24 + (n.tier - m.tier) * 5 + pseudo(performance.now() + n.id + m.id) * 4;
+        if (!best || score > best.score) best = { source: n, target: m, score };
       });
     });
+    if (best) return attack(best.source, best.target, .54);
 
-    if (best) return send(best.source, best.target, 0.54);
-
-    const up = nodes
-      .filter((n) => n.owner === "enemy" && n.tier < 6 && n.growth >= tier(n).cost)
-      .sort((a, b) => b.growth - a.growth)[0];
-
+    const up = nodes.filter((n) => n.owner === "enemy" && n.tier < 6 && n.growth >= tier(n).cost).sort((a, b) => b.growth - a.growth)[0];
     if (up) {
       up.growth -= tier(up).cost;
       up.tier += 1;
@@ -235,31 +208,29 @@
   }
 
   function update(dt) {
+    messageAge += dt;
+    if (messageAge > 3.5) {
+      statusEl.style.opacity = ".15";
+      statusEl.style.transform = "translateX(-50%) translateY(-4px)";
+    }
+
     spores.forEach((s) => {
-      s.y -= s.v * dt;
-      if (s.y < -0.05) {
-        s.y = 1.05;
-        s.x = Math.random();
-      }
+      s.y -= s.speed * dt;
+      s.x += Math.sin(performance.now() * .00025 + s.y * 8) * .00008;
+      if (s.y < -.04) { s.y = 1.04; s.x = Math.random(); }
     });
 
     nodes.forEach((n) => {
-      n.growth = Math.min(tier(n).cap, n.growth + tier(n).regen * (n.owner === "neutral" ? 0.35 : 1) * dt);
-      n.hit = Math.max(0, n.hit - dt * 1.3);
-      n.bloom = Math.max(0, n.bloom - dt * 1.4);
+      n.growth = Math.min(tier(n).cap, n.growth + tier(n).regen * (n.owner === "neutral" ? .28 : 1) * dt);
+      n.hit = Math.max(0, n.hit - dt * 1.6);
+      n.bloom = Math.max(0, n.bloom - dt * 1.45);
     });
 
-    for (let i = shots.length - 1; i >= 0; i -= 1) {
-      const s = shots[i];
-      if (s.delay > 0) {
-        s.delay -= dt;
-        continue;
-      }
-      s.t += dt / s.dur;
-      if (s.t >= 1) {
-        impact(s);
-        shots.splice(i, 1);
-      }
+    for (let i = tendrils.length - 1; i >= 0; i -= 1) {
+      const t = tendrils[i];
+      t.t += dt / t.duration;
+      if (!t.struck && t.t >= .92) { t.struck = true; resolveHit(t); }
+      if (t.t >= 1.15) tendrils.splice(i, 1);
     }
 
     for (let i = bursts.length - 1; i >= 0; i -= 1) {
@@ -268,321 +239,429 @@
     }
 
     enemyClock += dt;
-    if (enemyClock >= 1.35) {
-      enemyTurn();
-      enemyClock = 0;
-    }
+    if (enemyClock >= 1.6) { enemyTurn(); enemyClock = 0; }
 
     if (selectedId != null && nodes[selectedId].owner !== "player") {
       selectedId = (nodes.find((n) => n.owner === "player") || {}).id ?? null;
     }
 
-    const p = nodes.filter((n) => n.owner === "player").length;
-    const e = nodes.filter((n) => n.owner === "enemy").length;
-
-    if (!result && e === 0) {
-      result = "Verdant victory";
-      setStatus("You overgrew the entire blight.");
-    }
-
-    if (!result && p === 0) {
-      result = "Blight victory";
-      setStatus("Your growth collapsed. Reset and try again.");
-      selectedId = null;
-    }
-
+    const players = nodes.filter((n) => n.owner === "player").length;
+    const enemies = nodes.filter((n) => n.owner === "enemy").length;
+    if (!result && enemies === 0) { result = "Verdant victory"; setMessage("The blight has been completely overgrown."); }
+    if (!result && players === 0) { result = "Blight victory"; selectedId = null; setMessage("Your growth collapsed. Reset to try again."); }
     syncHud();
   }
 
   function syncHud() {
-    const p = nodes.filter((n) => n.owner === "player");
-    territoryEl.textContent = `${p.length}/${nodes.length} plots • ${Math.round(p.reduce((sum, n) => sum + n.growth, 0))} growth`;
-    selectedEl.textContent =
-      selectedId == null
-        ? "None"
-        : `${tier(nodes[selectedId]).name} • ${Math.round(nodes[selectedId].growth)}/${tier(nodes[selectedId]).cap}`;
-    statusEl.textContent = result || status;
+    const owned = nodes.filter((n) => n.owner === "player");
+    territoryEl.textContent = `${owned.length} / ${nodes.length}`;
+    if (selectedId == null) {
+      selectedEl.textContent = "No patch selected";
+      growthEl.textContent = "Tap a green patch";
+      upgradeButton.disabled = true;
+      upgradeButton.style.opacity = ".45";
+      return;
+    }
+    const n = nodes[selectedId];
+    selectedEl.textContent = tier(n).name;
+    growthEl.textContent = `${Math.round(n.growth)} / ${tier(n).cap} growth${n.tier < 6 ? ` • evolve at ${tier(n).cost}` : " • max tier"}`;
+    upgradeButton.disabled = n.owner !== "player";
+    upgradeButton.style.opacity = n.owner === "player" ? "1" : ".45";
   }
 
-  function drawBackground(now) {
-    const g = ctx.createLinearGradient(0, 0, 0, h);
-    g.addColorStop(0, "#09130f");
-    g.addColorStop(0.45, "#10251d");
-    g.addColorStop(1, "#08110d");
-    ctx.fillStyle = g;
+  function render(time) {
+    const now = time / 1000;
+    drawWorld(now);
+    drawSelectionConnections(now);
+    nodes.forEach((n) => drawPatch(n, now));
+    tendrils.forEach((t) => drawTendril(t, now));
+    bursts.forEach(drawBurst);
+    if (result) drawResult();
+  }
+
+  function drawWorld(now) {
+    const sky = ctx.createLinearGradient(0, 0, 0, h);
+    sky.addColorStop(0, "#07130d");
+    sky.addColorStop(.42, "#0a1e14");
+    sky.addColorStop(1, "#08100b");
+    ctx.fillStyle = sky;
     ctx.fillRect(0, 0, w, h);
 
-    const glow = ctx.createRadialGradient(w * 0.5, h * 0.48, 60, w * 0.5, h * 0.48, w * 0.5);
-    glow.addColorStop(0, "rgba(110,255,170,0.08)");
-    glow.addColorStop(1, "rgba(0,0,0,0)");
-    ctx.fillStyle = glow;
+    const halo = ctx.createRadialGradient(w * .48, h * .43, 10, w * .48, h * .43, w * .55);
+    halo.addColorStop(0, "rgba(76, 153, 92, .12)");
+    halo.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = halo;
     ctx.fillRect(0, 0, w, h);
+
+    for (let y = 90; y < h; y += 34) {
+      ctx.strokeStyle = `rgba(99, 143, 104, ${.016 + (y / h) * .014})`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      for (let x = 0; x <= w; x += 24) ctx.lineTo(x, y + Math.sin(x * .028 + y * .013 + now * .35) * 5);
+      ctx.stroke();
+    }
 
     spores.forEach((s) => {
-      ctx.fillStyle = `rgba(220,255,228,${s.a})`;
+      ctx.fillStyle = `rgba(209, 243, 213, ${s.alpha})`;
       ctx.beginPath();
-      ctx.arc(s.x * w, s.y * h, s.s, 0, Math.PI * 2);
+      ctx.arc(s.x * w, s.y * h, s.size, 0, Math.PI * 2);
       ctx.fill();
     });
+  }
 
-    ctx.strokeStyle = "rgba(180,255,190,0.05)";
-    for (let y = h * 0.72; y < h; y += 26) {
+  function drawSelectionConnections(now) {
+    if (selectedId == null) return;
+    const source = nodes[selectedId];
+    neighbors(selectedId).forEach((target, index) => {
+      const a = source;
+      const b = target;
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const dist = Math.hypot(dx, dy);
+      const nx = dx / dist;
+      const ny = dy / dist;
+      const bend = Math.sin(now * 1.3 + index) * 7;
+      const cx = (a.x + b.x) / 2 - ny * bend;
+      const cy = (a.y + b.y) / 2 + nx * bend;
+      const enemy = target.owner !== "player";
+
       ctx.beginPath();
-      ctx.moveTo(0, y + Math.sin(now + y * 0.03) * 4);
-      for (let x = 0; x <= w; x += 20) {
-        ctx.lineTo(x, y + Math.sin(now * 1.1 + x * 0.028 + y * 0.02) * 6);
+      ctx.moveTo(a.x, a.y);
+      ctx.quadraticCurveTo(cx, cy, b.x, b.y);
+      ctx.strokeStyle = enemy ? "rgba(231, 208, 140, .18)" : "rgba(125, 231, 143, .14)";
+      ctx.lineWidth = 5;
+      ctx.lineCap = "round";
+      ctx.stroke();
+
+      const t = (now * .28 + index * .2) % 1;
+      const point = qPoint(a.x, a.y, cx, cy, b.x, b.y, t);
+      ctx.fillStyle = enemy ? "rgba(255,211,152,.62)" : "rgba(170,255,181,.5)";
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, 2.4, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  }
+
+  function drawPatch(n, now) {
+    const p = PALETTE[n.owner];
+    const r = n.r * (1 + Math.sin(now * 1.7 + n.phase) * .012 + n.bloom * .055);
+
+    ctx.save();
+    ctx.translate(n.x + Math.sin(now * 2.1 + n.phase) * n.hit * 3, n.y);
+
+    ctx.shadowBlur = 20 + n.bloom * 16;
+    ctx.shadowColor = p.glow;
+    ctx.fillStyle = "rgba(0,0,0,.25)";
+    irregularPath(n, r * 1.08, 0, 6);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    const soil = ctx.createRadialGradient(-r * .24, -r * .3, r * .14, 0, 0, r);
+    soil.addColorStop(0, lighten(p.soil, 18));
+    soil.addColorStop(.72, p.soil);
+    soil.addColorStop(1, p.dark);
+    ctx.fillStyle = soil;
+    irregularPath(n, r, 0, 0);
+    ctx.fill();
+
+    ctx.save();
+    irregularPath(n, r * .94, 0, 0);
+    ctx.clip();
+    drawGroundTexture(n, r, p);
+    drawPlantCluster(n, r, p, now);
+    ctx.restore();
+
+    if (selectedId === n.id && n.owner === "player") {
+      ctx.strokeStyle = "rgba(202,255,202,.72)";
+      ctx.lineWidth = 2.2;
+      ctx.setLineDash([5, 7]);
+      ctx.lineDashOffset = -now * 12;
+      irregularPath(n, r * 1.09, 0, 0);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    if (n.hit > 0) {
+      ctx.fillStyle = `rgba(255,245,214,${n.hit * .13})`;
+      irregularPath(n, r * 1.01, 0, 0);
+      ctx.fill();
+    }
+
+    const shouldShowBar = selectedId === n.id || n.hit > .02;
+    if (shouldShowBar) drawGrowthBar(n, r, p);
+    ctx.restore();
+  }
+
+  function irregularPath(n, r, ox, oy) {
+    ctx.beginPath();
+    n.shape.forEach((pt, i) => {
+      const rr = r * pt.n;
+      const x = Math.cos(pt.a) * rr + ox;
+      const y = Math.sin(pt.a) * rr * .82 + oy;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.closePath();
+  }
+
+  function drawGroundTexture(n, r, p) {
+    for (let i = 0; i < 18; i += 1) {
+      const a = pseudo(n.seed + i * 19) * Math.PI * 2;
+      const d = Math.sqrt(pseudo(n.seed + i * 23 + 3)) * r * .72;
+      const x = Math.cos(a) * d;
+      const y = Math.sin(a) * d * .72;
+      ctx.fillStyle = i % 3 === 0 ? "rgba(255,255,255,.035)" : "rgba(0,0,0,.08)";
+      ctx.beginPath();
+      ctx.arc(x, y, 1 + pseudo(i + n.seed) * 2.4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  function drawPlantCluster(n, r, p, now) {
+    const info = tier(n);
+    const count = info.blades;
+    for (let i = 0; i < count; i += 1) {
+      const angle = pseudo(n.seed + i * 43) * Math.PI * 2;
+      const distance = Math.sqrt(pseudo(n.seed + i * 47 + 2)) * r * .58;
+      const x = Math.cos(angle) * distance;
+      const baseY = Math.sin(angle) * distance * .52 + r * .19;
+      const variance = .72 + pseudo(n.seed + i * 53) * .55;
+      const sway = Math.sin(now * (1.6 + n.tier * .08) + n.phase + i * .71) * r * .055;
+      drawPlantStem(n.tier, x, baseY, r * variance, sway, p, i);
+    }
+  }
+
+  function drawPlantStem(t, x, y, r, sway, p, i) {
+    let height = r * (.52 + t * .055);
+    if (t === 6) height = r * .88;
+    const thick = Math.max(1.5, 1.4 + t * .38);
+    ctx.lineCap = "round";
+
+    if (t <= 2) {
+      ctx.strokeStyle = i % 3 === 0 ? p.leaf2 : p.leaf;
+      ctx.lineWidth = thick;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.quadraticCurveTo(x + sway * .35, y - height * .52, x + sway, y - height);
+      ctx.stroke();
+      return;
+    }
+
+    if (t === 3) {
+      ctx.strokeStyle = p.leaf;
+      ctx.lineWidth = thick * .75;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.quadraticCurveTo(x + sway * .2, y - height * .55, x + sway, y - height);
+      ctx.stroke();
+      ctx.fillStyle = nudgeColor(p.leaf2, 18);
+      ctx.beginPath();
+      ctx.ellipse(x + sway, y - height, 2.6, 7, sway * .01, 0, Math.PI * 2);
+      ctx.fill();
+      return;
+    }
+
+    if (t === 4) {
+      ctx.strokeStyle = p.leaf;
+      ctx.lineWidth = thick * .9;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.quadraticCurveTo(x + sway * .15, y - height * .5, x + sway * .7, y - height);
+      ctx.stroke();
+      ctx.strokeStyle = p.leaf2;
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(x + sway * .7, y - height);
+      ctx.lineTo(x + sway * .85, y - height - 8);
+      ctx.stroke();
+      return;
+    }
+
+    if (t === 5) {
+      ctx.strokeStyle = nudgeColor(p.leaf, -10);
+      ctx.lineWidth = thick * 1.15;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + sway * .3, y - height);
+      ctx.stroke();
+      for (let j = 1; j <= 3; j += 1) {
+        const ly = y - height * (j / 4);
+        ctx.strokeStyle = p.leaf2;
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.moveTo(x + sway * .1, ly);
+        ctx.quadraticCurveTo(x + 8, ly - 3, x + 13 + sway * .25, ly - 8);
+        ctx.stroke();
       }
+      return;
+    }
+
+    ctx.strokeStyle = nudgeColor(p.leaf, -16);
+    ctx.lineWidth = thick * 1.8;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + sway * .15, y - height);
+    ctx.stroke();
+    for (let j = 1; j <= 3; j += 1) {
+      const ly = y - height * (j / 4);
+      ctx.strokeStyle = p.leaf2;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(x + sway * .1, ly);
+      ctx.quadraticCurveTo(x + 10, ly - 2, x + 16 + sway * .25, ly - 10);
+      ctx.moveTo(x + sway * .1, ly + 1);
+      ctx.quadraticCurveTo(x - 9, ly - 1, x - 14 + sway * .12, ly - 8);
       ctx.stroke();
     }
   }
 
-  function drawEdge(a, b, active, now) {
+  function drawGrowthBar(n, r, p) {
+    const pct = Math.max(0, Math.min(1, n.growth / tier(n).cap));
+    const width = r * 1.15;
+    const y = r * .83;
+    ctx.fillStyle = "rgba(4,9,6,.58)";
+    roundRect(-width / 2, y, width, 5, 3);
+    ctx.fill();
+    ctx.fillStyle = p.vein;
+    roundRect(-width / 2, y, width * pct, 5, 3);
+    ctx.fill();
+  }
+
+  function drawTendril(t, now) {
+    const a = nodes[t.from];
+    const b = nodes[t.to];
+    const p = PALETTE[t.owner];
     const dx = b.x - a.x;
     const dy = b.y - a.y;
     const dist = Math.hypot(dx, dy);
     const nx = dx / dist;
     const ny = dy / dist;
-    const bend = Math.sin(now * 1.2 + (a.id + b.id) * 0.7) * 6;
-    const cx = (a.x + b.x) / 2 - ny * bend;
-    const cy = (a.y + b.y) / 2 + nx * bend;
+    const cx = (a.x + b.x) / 2 - ny * t.sway;
+    const cy = (a.y + b.y) / 2 + nx * t.sway;
+    const progress = Math.min(1, t.t);
 
-    ctx.beginPath();
-    ctx.moveTo(a.x, a.y);
-    ctx.quadraticCurveTo(cx, cy, b.x, b.y);
-    ctx.strokeStyle = active ? "rgba(205,255,170,0.42)" : "rgba(136,179,138,0.18)";
-    ctx.lineWidth = active ? 6 : 4;
     ctx.lineCap = "round";
-    ctx.stroke();
-
+    ctx.lineJoin = "round";
+    ctx.strokeStyle = p.vein;
+    ctx.lineWidth = 3.2;
+    ctx.shadowColor = p.glow;
+    ctx.shadowBlur = 12;
     ctx.beginPath();
-    ctx.moveTo(a.x, a.y);
-    ctx.quadraticCurveTo(cx, cy, b.x, b.y);
-    ctx.strokeStyle = active ? "rgba(255,255,255,0.45)" : "rgba(220,240,214,0.08)";
-    ctx.lineWidth = active ? 2.2 : 1.2;
+    const segments = 22;
+    for (let i = 0; i <= segments * progress; i += 1) {
+      const q = i / segments;
+      const point = qPoint(a.x, a.y, cx, cy, b.x, b.y, q);
+      if (i === 0) ctx.moveTo(point.x, point.y); else ctx.lineTo(point.x, point.y);
+    }
     ctx.stroke();
-  }
+    ctx.shadowBlur = 0;
 
-  function drawBlob(r) {
-    ctx.moveTo(0, -r);
-    ctx.bezierCurveTo(r * 0.76, -r * 0.92, r * 1.12, -r * 0.24, r, r * 0.28);
-    ctx.bezierCurveTo(r * 0.82, r * 0.98, r * 0.18, r * 1.14, -r * 0.22, r * 0.92);
-    ctx.bezierCurveTo(-r * 0.92, r * 0.86, -r * 1.14, r * 0.16, -r * 0.86, -r * 0.36);
-    ctx.bezierCurveTo(-r * 0.66, -r * 0.96, -r * 0.18, -r * 1.08, 0, -r);
-  }
-
-  function drawPlant(n, now, r) {
-    const st = STYLE[n.owner];
-    const sway = Math.sin(now * 2.8 + n.phase) * 0.22;
-    const blades = 4 + n.tier * 2;
-
-    for (let i = 0; i < blades; i += 1) {
-      const spread = ((i / Math.max(1, blades - 1)) - 0.5) * r * 0.95;
-      const height = r * (0.45 + (i % 3) * 0.12 + n.tier * 0.08);
-
+    for (let i = 0; i < 4; i += 1) {
+      const q = Math.min(progress, .2 + i * .2);
+      if (q > progress - .06) continue;
+      const point = qPoint(a.x, a.y, cx, cy, b.x, b.y, q);
+      ctx.fillStyle = p.leaf2;
       ctx.beginPath();
-      ctx.moveTo(spread, r * 0.38);
-      ctx.quadraticCurveTo(
-        spread + r * 0.14 + sway * r * 0.8,
-        r * 0.10,
-        spread + sway * r * 1.3,
-        r * 0.38 - height
-      );
-      ctx.strokeStyle = i % 2 === 0 ? st.core : st.leaf;
-      ctx.lineWidth = Math.max(2, r * 0.08 - i * 0.03);
-      ctx.lineCap = "round";
-      ctx.stroke();
+      ctx.ellipse(point.x + Math.sin(now * 5 + i) * 2, point.y, 4, 2, i * .8, 0, Math.PI * 2);
+      ctx.fill();
     }
-
-    if (n.tier >= 3) {
-      for (let i = 0; i < Math.min(4, n.tier); i += 1) {
-        const offset = ((i / Math.max(1, Math.min(4, n.tier) - 1)) - 0.5) * r * 0.7;
-
-        ctx.beginPath();
-        ctx.moveTo(offset, r * 0.18);
-        ctx.lineTo(offset + Math.sin(now * 2.2 + n.phase + i) * r * 0.04, -r * (0.48 + i * 0.03));
-        ctx.strokeStyle = st.core;
-        ctx.lineWidth = 2.2;
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.ellipse(offset, -r * (0.5 + i * 0.03), r * 0.09, r * 0.18, 0, 0, Math.PI * 2);
-        ctx.fillStyle = n.owner === "enemy" ? "#ffd785" : "#f2f29a";
-        ctx.fill();
-      }
-    }
-
-    if (n.tier >= 5) {
-      for (let i = -1; i <= 1; i += 1) {
-        const x = i * r * 0.22;
-        ctx.beginPath();
-        ctx.moveTo(x, r * 0.28);
-        ctx.lineTo(x, -r * 0.62);
-        ctx.strokeStyle = st.core;
-        ctx.lineWidth = 4;
-        ctx.stroke();
-      }
-    }
-  }
-
-  function drawNode(n, now) {
-    const st = STYLE[n.owner];
-    const pulse = 1 + Math.sin(now * 2.2 + n.phase) * 0.03 + n.bloom * 0.08;
-    const r = n.r * pulse;
-
-    ctx.save();
-    ctx.translate(n.x, n.y);
-
-    ctx.fillStyle = st.glow;
-    ctx.beginPath();
-    ctx.arc(0, 0, r * 1.45 + n.hit * 10, 0, Math.PI * 2);
-    ctx.fill();
-
-    const soil = ctx.createRadialGradient(-r * 0.25, -r * 0.35, r * 0.2, 0, 0, r * 1.05);
-    soil.addColorStop(0, "rgba(255,255,255,0.10)");
-    soil.addColorStop(1, st.deep);
-
-    ctx.beginPath();
-    drawBlob(r);
-    ctx.fillStyle = soil;
-    ctx.fill();
-
-    ctx.beginPath();
-    drawBlob(r * 0.82);
-    ctx.fillStyle = "rgba(27,31,23,0.55)";
-    ctx.fill();
-
-    drawPlant(n, now, r);
-
-    const p = Math.max(0, Math.min(1, n.growth / tier(n).cap));
-
-    ctx.beginPath();
-    ctx.strokeStyle = "rgba(255,255,255,0.10)";
-    ctx.lineWidth = 4;
-    ctx.arc(0, 0, r * 0.98, -Math.PI / 2, Math.PI * 1.5);
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.strokeStyle = st.core;
-    ctx.lineWidth = 4;
-    ctx.lineCap = "round";
-    ctx.arc(0, 0, r * 0.98, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * p);
-    ctx.stroke();
-
-    if (selectedId === n.id) {
-      ctx.beginPath();
-      ctx.strokeStyle = n.owner === "player" ? "rgba(255,255,255,0.88)" : "rgba(255,255,255,0.28)";
-      ctx.lineWidth = 3;
-      ctx.arc(0, 0, r * 1.18, 0, Math.PI * 2);
-      ctx.stroke();
-    }
-
-    ctx.fillStyle = "rgba(255,255,255,0.86)";
-    ctx.font = "600 12px system-ui, sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText(String(n.tier), 0, r + 16);
-
-    ctx.restore();
-  }
-
-  function drawShot(s) {
-    if (s.delay > 0) return;
-
-    const a = nodes[s.from];
-    const b = nodes[s.to];
-    const mx = (a.x + b.x) / 2;
-    const my = (a.y + b.y) / 2 - 20 + s.arc;
-    const x = quad(a.x, mx, b.x, s.t);
-    const y = quad(a.y, my, b.y, s.t);
-    const tx = quad(a.x, mx, b.x, Math.max(0, s.t - 0.08));
-    const ty = quad(a.y, my, b.y, Math.max(0, s.t - 0.08));
-
-    ctx.beginPath();
-    ctx.moveTo(tx, ty);
-    ctx.lineTo(x, y);
-    ctx.strokeStyle = STYLE[s.owner].shot;
-    ctx.lineWidth = 2.4;
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.fillStyle = "#fff8e8";
-    ctx.arc(x, y, 3.5, 0, Math.PI * 2);
-    ctx.fill();
   }
 
   function drawBurst(b) {
+    const p = PALETTE[b.owner];
     const t = b.age / b.life;
-    const radius = (b.big ? 36 : 16) * t;
-    const rgb = hexToRgb(b.color);
-
+    const radius = (b.big ? 44 : 22) * easeOut(t);
+    ctx.strokeStyle = alphaHex(p.vein, 1 - t);
+    ctx.lineWidth = b.big ? 4 : 2;
     ctx.beginPath();
-    ctx.strokeStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${1 - t})`;
-    ctx.lineWidth = b.big ? 5 : 3;
     ctx.arc(b.x, b.y, radius, 0, Math.PI * 2);
     ctx.stroke();
-  }
-
-  function render(time) {
-    const now = time / 1000;
-    ctx.clearRect(0, 0, w, h);
-
-    drawBackground(now);
-    edges.forEach(([a, b]) => drawEdge(nodes[a], nodes[b], selectedId != null && (a === selectedId || b === selectedId), now));
-    nodes.forEach((n) => drawNode(n, now));
-    shots.forEach(drawShot);
-    bursts.forEach(drawBurst);
-
-    if (result) {
-      ctx.fillStyle = "rgba(0,0,0,0.28)";
-      ctx.fillRect(0, 0, w, h);
-      ctx.fillStyle = "#fff";
-      ctx.font = "700 34px system-ui, sans-serif";
-      ctx.textAlign = "center";
-      ctx.fillText(result, w / 2, h / 2 - 12);
-      ctx.font = "500 16px system-ui, sans-serif";
-      ctx.fillText("Tap Reset to begin another growth cycle.", w / 2, h / 2 + 20);
+    for (let i = 0; i < (b.big ? 10 : 5); i += 1) {
+      const a = i * 2.399 + t;
+      const d = radius * (.5 + pseudo(i + 2) * .8);
+      ctx.fillStyle = alphaHex(p.leaf2, 1 - t);
+      ctx.beginPath();
+      ctx.ellipse(b.x + Math.cos(a) * d, b.y + Math.sin(a) * d, 3.2, 1.6, a, 0, Math.PI * 2);
+      ctx.fill();
     }
   }
 
-  function quad(a, b, c, t) {
-    return (1 - t) * (1 - t) * a + 2 * (1 - t) * t * b + t * t * c;
-  }
-
-  function hexToRgb(hex) {
-    const n = parseInt(hex.replace("#", ""), 16);
-    return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+  function drawResult() {
+    ctx.fillStyle = "rgba(3,8,5,.48)";
+    ctx.fillRect(0, 0, w, h);
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#f2fff3";
+    ctx.font = "800 28px system-ui, sans-serif";
+    ctx.fillText(result, w / 2, h * .48);
+    ctx.fillStyle = "#a9bcad";
+    ctx.font = "500 14px system-ui, sans-serif";
+    ctx.fillText("Reset to grow again", w / 2, h * .48 + 26);
   }
 
   function pick(clientX, clientY) {
     const rect = canvas.getBoundingClientRect();
     const x = clientX - rect.left;
     const y = clientY - rect.top;
-    return nodes.find((n) => Math.hypot(n.x - x, n.y - y) <= n.r * 1.15) || null;
+    return nodes
+      .map((n) => ({ n, d: Math.hypot(n.x - x, n.y - y) }))
+      .filter((o) => o.d <= o.n.r * 1.08)
+      .sort((a, b) => a.d - b.d)[0]?.n || null;
   }
 
   function onPointerDown(event) {
     const hit = pick(event.clientX, event.clientY);
-
-    if (!hit) {
-      selectedId = null;
-      return;
-    }
+    if (!hit) return;
 
     if (hit.owner === "player") {
       selectedId = hit.id;
+      setMessage(`${tier(hit).name} selected.`);
+      syncHud();
       return;
     }
 
-    if (selectedId == null) return setStatus("Select one of your own green plots first.");
-
+    if (selectedId == null) return setMessage("Select one of your green patches first.");
     const source = nodes[selectedId];
     if (!source || source.owner !== "player") return;
-    if (!linked(source.id, hit.id)) return setStatus("Plots can only attack across a root connection.");
-
-    send(source, hit, 0.58);
+    if (!linked(source.id, hit.id)) return setMessage("That patch is too far away. Choose a nearby one.");
+    attack(source, hit);
   }
 
+  function qPoint(ax, ay, cx, cy, bx, by, t) {
+    return {
+      x: (1 - t) * (1 - t) * ax + 2 * (1 - t) * t * cx + t * t * bx,
+      y: (1 - t) * (1 - t) * ay + 2 * (1 - t) * t * cy + t * t * by
+    };
+  }
+
+  function lighten(hex, amount) { return nudgeColor(hex, amount); }
+  function nudgeColor(hex, amount) {
+    const v = parseInt(hex.slice(1), 16);
+    const r = Math.max(0, Math.min(255, (v >> 16) + amount));
+    const g = Math.max(0, Math.min(255, ((v >> 8) & 255) + amount));
+    const b = Math.max(0, Math.min(255, (v & 255) + amount));
+    return `rgb(${r},${g},${b})`;
+  }
+
+  function alphaHex(hex, alpha) {
+    const v = parseInt(hex.slice(1), 16);
+    return `rgba(${(v >> 16) & 255},${(v >> 8) & 255},${v & 255},${Math.max(0, Math.min(1, alpha))})`;
+  }
+
+  function roundRect(x, y, width, height, radius) {
+    const r = Math.min(radius, width / 2, height / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + width, y, x + width, y + height, r);
+    ctx.arcTo(x + width, y + height, x, y + height, r);
+    ctx.arcTo(x, y + height, x, y, r);
+    ctx.arcTo(x, y, x + width, y, r);
+    ctx.closePath();
+  }
+
+  function easeOut(t) { return 1 - Math.pow(1 - Math.min(1, t), 3); }
+
   function loop(time) {
-    const dt = Math.min(0.033, (time - last) / 1000 || 0.016);
+    const dt = Math.min(.033, (time - last) / 1000 || .016);
     last = time;
     update(dt);
     render(time);
