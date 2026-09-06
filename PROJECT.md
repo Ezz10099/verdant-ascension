@@ -55,6 +55,8 @@ The game begins at an extremely small scale with tiny green grass. Progression e
 6. **Phone-first development.** Controls, UI, performance, and project structure should remain practical for development and play on a phone.
 7. **Do not add complexity merely for realism.** Mechanics should earn their place by improving the game.
 8. **The battlefield should look alive.** Movement, growth, impact, and evolution should be visually readable rather than represented only by static board pieces.
+9. **The battlefield is the focus.** HUD and instructions should stay compact and should not cover large parts of the phone screen.
+10. **Avoid token-like presentation.** Plant areas should resemble living vegetation, not circular buttons, coins, or generic board-game pieces.
 
 ---
 
@@ -132,24 +134,32 @@ The original hexagonal-board presentation is no longer the intended visual direc
 
 Verdant Ascension should not visually feel like a conventional hex-board strategy game.
 
+### Circular / token-like presentation also rejected
+
+The first non-hex redesign still placed each plant inside a permanent circular ring and surrounded the battlefield with large information panels. In practice this still looked like board-game tokens rather than living vegetation and covered too much of the phone screen.
+
+That presentation is also rejected.
+
 ### Current presentation
 
-The prototype now uses an **organic battlefield** made from irregular plant-growth plots connected by root-like paths.
+The current prototype uses a **full-screen living battlefield** with irregular vegetation patches.
 
-Current presentation goals:
+Presentation goals now are:
 
-- irregular organic plots instead of hexagons
-- root / growth connections between nearby areas
-- plants visibly drawn on the battlefield
+- irregular ground / vegetation shapes instead of geometric tiles or permanent circles
+- plants should visually emerge from each patch rather than sit inside an icon
+- root connections stay mostly hidden and appear when a selected plant can interact with nearby growth
+- selection is shown through a subtle animated outline and growth bar, not a large permanent ring
+- plant types have visibly different silhouettes
 - animated plant swaying
-- pulsing growth energy
-- moving attack particles / seeds / spores
-- impact flashes and capture bloom effects
-- ambient floating spores
-- a dark natural environment rather than a flat board
-- touch-friendly mobile controls and HUD
+- vine / tendril attacks that visibly grow toward the target
+- leaf / spore impact effects and capture blooms
+- ambient floating spores and subtle environmental movement
+- a compact translucent top bar rather than large stacked HUD cards
+- a compact bottom selection / evolution dock
+- maximum usable screen area for the actual battlefield
 
-The root-connected plot system is the current prototype presentation. It may still evolve further if a better free-form or more natural representation is found.
+The current root-connected topology remains a **prototype mechanic**, not a permanently confirmed final map structure. The visual goal is natural, alive, and continuous even while the underlying prototype uses discrete interaction points.
 
 ---
 
@@ -159,6 +169,8 @@ The root-connected plot system is the current prototype presentation. It may sti
 - Complex markets, transport, wages, taxes, loans, fertility management, or similar simulation-heavy economics.
 - Copying Antiyoy's territory / combat system directly.
 - Hexagonal tiles as the main presentation.
+- Permanent circular plant tokens / button-like growth plots as the main presentation.
+- Large HUD cards that cover a major portion of the battlefield on mobile.
 - A short simplistic progression where grass immediately becomes shrubs, then trees, then a giant forest.
 
 Antiyoy helped inspire the desire for a simple strategy game with substantial depth, but Verdant Ascension should develop its own combat, presentation, and progression logic.
@@ -187,9 +199,9 @@ The prototype uses:
 Current files:
 
 - `PROJECT.md` — permanent project memory and design record
-- `index.html` — page structure and mobile HUD
-- `style.css` — responsive visual styling
-- `game.js` — game state, AI, combat, input, rendering, and animation
+- `index.html` — page structure and compact mobile HUD
+- `style.css` — responsive full-screen styling
+- `game.js` — game state, AI, combat, input, procedural plant rendering, and animation
 
 This is a technical starting point, not a permanent restriction.
 
@@ -197,36 +209,35 @@ This is a technical starting point, not a permanent restriction.
 
 ## 10. Current Development Milestone
 
-### Milestone 1 — Organic Battlefield Prototype
+### Milestone 1 — Living Battlefield Presentation
 
-The original hex foundation has been replaced.
+The original hex foundation and the later circular-token presentation have both been replaced.
 
 Current prototype now includes:
 
 - full-screen animated Canvas battlefield
-- irregular organic plant plots
-- root-like connections between plots
+- irregular organic vegetation patches without permanent circular frames
+- root-like connections shown mainly for the selected plant
 - player-controlled green growth
 - enemy orange / blight growth
 - neutral wild growth
 - touch selection
-- attacks sent across connected growth paths
-- animated attack particles
+- vine / tendril attacks toward nearby growth
 - growth regeneration
-- plot capture
-- six temporary upgrade tiers
-- upgrade button
+- plant capture
+- six temporary upgrade tiers with different procedural silhouettes
+- upgrade / evolve control
 - simple enemy AI
 - animated plant sway
-- pulsing / bloom effects
+- bloom / impact effects
 - ambient spores
 - victory and defeat states
-- responsive phone-first HUD
+- compact phone-first HUD
 - reset control
 
 ### Purpose of this milestone
 
-Prove that plant combat can feel visually alive and distinct without relying on hexagonal tiles before we invest in the much larger real-world evolution tree and final combat rules.
+Prove that plant combat can feel visually alive and distinct without looking like a conventional tile or token board before we invest in the much larger real-world evolution tree and final combat rules.
 
 ### Next development milestone
 
@@ -253,8 +264,9 @@ Build the first **proper plant progression slice** using researched plant specie
 - Rejected hexagonal tiles as the main visual presentation.
 - Made stronger graphics and animation a development priority.
 - Replaced the hex-map prototype with an organic root-connected battlefield.
-- Added continuous plant sway, ambient spores, attack particles, impact / bloom effects, growth regeneration, capture, upgrades, enemy AI, and win / loss states.
-- Kept the new mechanics explicitly provisional where they have not yet been confirmed as final game rules.
+- After testing on a phone, rejected the first organic redesign because the circular plot rings still looked like board-game tokens and the HUD covered too much of the screen.
+- Changed the presentation again to full-screen irregular vegetation patches, contextual root links, a compact HUD, subtle selection outlines, and vine / tendril attack animation.
+- Kept the current root-connected interaction model provisional rather than treating it as a final game rule.
 
 ---
 
