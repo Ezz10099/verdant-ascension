@@ -3,25 +3,48 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-  <meta name="theme-color" content="#17251b">
+  <meta name="theme-color" content="#102019">
   <title>Verdant Ascension</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="hud">
-    <div>
-      <h1>Verdant Ascension</h1>
-      <p id="status">Tap a hex next to the grass to spread.</p>
-    </div>
-    <div class="hud-actions">
-      <span id="tileCount">Grass: 1</span>
-      <button id="resetButton" type="button">Reset</button>
-    </div>
-  </header>
+  <div class="app-shell">
+    <header class="hud">
+      <div class="panel title-panel">
+        <div class="eyebrow">Verdant Ascension</div>
+        <h1>Organic Battlefield Prototype</h1>
+        <p>No hexagons. Animated root-linked growth plots with stronger visuals.</p>
+      </div>
 
-  <main id="gameWrap">
-    <canvas id="gameCanvas" aria-label="Verdant Ascension prototype map"></canvas>
-  </main>
+      <div class="panel stats-panel">
+        <div class="stat">
+          <span>Status</span>
+          <strong id="status">Loading battlefield...</strong>
+        </div>
+        <div class="stat">
+          <span>Selected</span>
+          <strong id="selectedInfo">None</strong>
+        </div>
+        <div class="stat">
+          <span>Territory</span>
+          <strong id="territoryInfo">0/0 plots</strong>
+        </div>
+      </div>
+    </header>
+
+    <main class="game-shell">
+      <canvas id="gameCanvas"></canvas>
+
+      <div class="controls panel">
+        <button id="upgradeButton">Upgrade Selected Growth</button>
+        <button id="resetButton" class="secondary">Reset Battlefield</button>
+      </div>
+
+      <div class="hint panel">
+        Tap a green plot to select it. Tap a connected plot to send growth and attack. Use Upgrade to evolve the selected plant to a larger stage.
+      </div>
+    </main>
+  </div>
 
   <script src="game.js"></script>
 </body>
