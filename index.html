@@ -3,47 +3,38 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-  <meta name="theme-color" content="#102019">
+  <meta name="theme-color" content="#08120d">
   <title>Verdant Ascension</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="app-shell">
-    <header class="hud">
-      <div class="panel title-panel">
-        <div class="eyebrow">Verdant Ascension</div>
-        <h1>Organic Battlefield Prototype</h1>
-        <p>No hexagons. Animated root-linked growth plots with stronger visuals.</p>
-      </div>
+  <div class="game-app">
+    <canvas id="gameCanvas" aria-label="Verdant Ascension battlefield"></canvas>
 
-      <div class="panel stats-panel">
-        <div class="stat">
-          <span>Status</span>
-          <strong id="status">Loading battlefield...</strong>
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark">V</span>
+        <div>
+          <strong>Verdant Ascension</strong>
+          <span>Living battlefield</span>
         </div>
-        <div class="stat">
-          <span>Selected</span>
-          <strong id="selectedInfo">None</strong>
-        </div>
-        <div class="stat">
-          <span>Territory</span>
-          <strong id="territoryInfo">0/0 plots</strong>
-        </div>
+      </div>
+      <div class="top-actions">
+        <div class="territory-pill" id="territoryInfo">3 / 13</div>
+        <button id="resetButton" class="icon-button" aria-label="Reset battlefield">↻</button>
       </div>
     </header>
 
-    <main class="game-shell">
-      <canvas id="gameCanvas"></canvas>
+    <div id="status" class="status-toast">Tap one of your green patches.</div>
 
-      <div class="controls panel">
-        <button id="upgradeButton">Upgrade Selected Growth</button>
-        <button id="resetButton" class="secondary">Reset Battlefield</button>
+    <section id="selectionDock" class="selection-dock">
+      <div class="selection-copy">
+        <span class="selection-label">Selected growth</span>
+        <strong id="selectedInfo">Small Grass</strong>
+        <span id="growthInfo" class="growth-info">32 / 42 growth</span>
       </div>
-
-      <div class="hint panel">
-        Tap a green plot to select it. Tap a connected plot to send growth and attack. Use Upgrade to evolve the selected plant to a larger stage.
-      </div>
-    </main>
+      <button id="upgradeButton" class="upgrade-button">Evolve</button>
+    </section>
   </div>
 
   <script src="game.js"></script>
